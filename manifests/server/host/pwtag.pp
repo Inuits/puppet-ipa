@@ -29,13 +29,13 @@ define ipa::server::host::pwtag() {
   # or rather, in doing so, the ipa server will generate a new password!
   file { "${vardir}/hosts/passwords/${name}.pwtag":
     content => "# This is a password tag for: ${name}\n",
-    owner => root,
-    group => nobody,
-    mode => '600',	# u=rw,go=
-    backup => false,
-    before => Exec["ipa-host-verify-password-exists-${name}"],
+    owner   => root,
+    group   => nobody,
+    mode    => '0600',  # u=rw,go=
+    backup  => false,
+    before  => Exec["ipa-host-verify-password-exists-${name}"],
     require => File["${vardir}/hosts/passwords/"],
-    ensure => present,
+    ensure  => present,
   }
 }
 

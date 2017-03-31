@@ -32,7 +32,7 @@ class ipa::params(
   #$service_ = '',	# TODO
 
   # external modules...
-  $include_puppet_facter = false,	# TODO: currently unused, so set to false
+  $include_puppet_facter = false,  # TODO: currently unused, so set to false
 
   # misc...
   #$misc_ = '',	# TODO
@@ -40,31 +40,31 @@ class ipa::params(
   # comment...
   $comment = ''
 ) {
-  if "${comment}" == '' {
+  if $comment == '' {
     warning('Unable to load yaml data/ directory!')
   }
 
   $valid_include_puppet_facter = $include_puppet_facter ? {
     true => true,
     false => false,
-    'true' => true,
-    'false' => false,
+    true => true,
+    false => false,
     default => true,
   }
 
   if $valid_include_puppet_facter {
     include puppet::facter
-    $factbase = "${::puppet::facter::base}"
+    $factbase = $::puppet::facter::base
     $hash = {
       'ipa_program_ipa' => $program_ipa,
     }
     # create a custom external fact!
     file { "${factbase}ipa_program.yaml":
       content => inline_template('<%= @hash.to_yaml %>'),
-      owner => root,
-      group => root,
-      mode => '644',		# u=rw,go=r
-      ensure => present,
+      owner   => root,
+      group   => root,
+      mode    => '0644',    # u=rw,go=r
+      ensure  => present,
     }
   }
 }

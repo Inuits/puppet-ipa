@@ -45,7 +45,7 @@ class ipa::server::service::base {
       true => ['^[[:alpha:]]{1}[[:alnum:]-.]*$'],
       default => false,
     },
-    default => false,	# trigger error...
+    default => false,  # trigger error...
   }
 
   if type3x($valid_service_excludes) != 'array' {
@@ -54,19 +54,22 @@ class ipa::server::service::base {
 
   # directory of system tags which should exist (as managed by puppet)
   file { "${vardir}/services/":
-    ensure => directory,		# make sure this is a directory
-    recurse => true,		# recursively manage directory
-    purge => true,			# purge all unmanaged files
-    force => true,			# also purge subdirs and links
-    owner => root, group => nobody, mode => '600', backup => false,
-    notify => Exec['ipa-clean-services'],
+    ensure  => directory,    # make sure this is a directory
+    recurse => true,    # recursively manage directory
+    purge   => true,      # purge all unmanaged files
+    force   => true,      # also purge subdirs and links
+    owner   => root,
+    group   => nobody,
+    mode    => '0600',
+    backup  => false,
+    notify  => Exec['ipa-clean-services'],
     require => File["${vardir}/"],
   }
 
   # these are template variables for the clean.sh.erb script
   $id_dir = 'services'
-  $ls_cmd = '/usr/bin/ipa service-find --pkey-only --raw | /usr/bin/tr -d " " | /bin/grep "^krbprincipalname:" | /bin/cut -b 18-'	# show ipa services
-  $rm_cmd = '/usr/bin/ipa service-del '	# delete ipa services
+  $ls_cmd = '/usr/bin/ipa service-find --pkey-only --raw | /usr/bin/tr -d " " | /bin/grep "^krbprincipalname:" | /bin/cut -b 18-'  # show ipa services
+  $rm_cmd = '/usr/bin/ipa service-del '  # delete ipa services
   $fs_chr = ' '
   $suffix = '.service'
   $regexp = $valid_service_excludes
@@ -75,23 +78,23 @@ class ipa::server::service::base {
   # build the clean script
   file { "${vardir}/clean-services.sh":
     content => template('ipa/clean.sh.erb'),
-    owner => root,
-    group => nobody,
-    mode => '700',			# u=rwx
-    backup => false,		# don't backup to filebucket
-    ensure => present,
+    owner   => root,
+    group   => nobody,
+    mode    => '0700',      # u=rwx
+    backup  => false,    # don't backup to filebucket
+    ensure  => present,
     require => File["${vardir}/"],
   }
 
   # run the cleanup
   exec { "${vardir}/clean-services.sh":
-    logoutput => on_failure,
+    logoutput   => on_failure,
     refreshonly => true,
-    require => [
+    require     => [
       Exec['ipa-server-kinit'],
       File["${vardir}/clean-services.sh"],
     ],
-    alias => 'ipa-clean-services',
+    alias       => 'ipa-clean-services',
   }
 }
 

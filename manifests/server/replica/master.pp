@@ -24,15 +24,15 @@ class ipa::server::replica::master(
   $vardir = regsubst($::ipa::vardir::module_vardir, '\/$', '')
 
   # fact from data in: ${vardir}/ipa_server_replica_master
-  $valid_master = "${::ipa_server_replica_master}"
+  $valid_master = $::ipa_server_replica_master
 
   @@file { "${vardir}/replica/master/master_${::fqdn}":
     content => "${valid_master}\n",
-    tag => 'ipa-server-replica-master',
-    owner => root,
-    group => nobody,
-    mode => '600',
-    ensure => present,
+    tag     => 'ipa-server-replica-master',
+    owner   => root,
+    group   => nobody,
+    mode    => '0600',
+    ensure  => present,
   }
 
   # collect to make facts

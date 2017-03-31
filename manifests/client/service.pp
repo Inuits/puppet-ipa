@@ -20,13 +20,13 @@
 # FIXME: a freeipa expert should verify and confirm that it's safe/ok this way!
 # this runs ipa-getkeytab magic, to setup the keytab, for a service on a client
 define ipa::client::service(
-  $service = '',		# nfs, HTTP, ldap
-  $host = '',		# should match $name of ipa::client::host
-  $domain = '',		# must be the empty string by default
+  $service = '',    # nfs, HTTP, ldap
+  $host = '',    # should match $name of ipa::client::host
+  $domain = '',    # must be the empty string by default
   $realm = '',
-  $principal = '',	# after all that, you can override principal...
-  $server = '',		# where the client will find the ipa server...
-  $keytab = '',		# defaults to /etc/krb5.keytab
+  $principal = '',  # after all that, you can override principal...
+  $server = '',    # where the client will find the ipa server...
+  $keytab = '',    # defaults to /etc/krb5.keytab
   $comment = '',
   $debug = false,
   $ensure = present
@@ -40,92 +40,92 @@ define ipa::client::service(
   # nfs/nfs.example.com@EXAMPLE.COM
   $r = '^([a-zA-Z][a-zA-Z0-9]*)(/([a-z][a-z\.\-]*)(@([A-Z][A-Z\.\-]*)){0,1}){0,1}$'
 
-  $a = regsubst("${name}", $r, '\1')	# service (nfs)
-  $b = regsubst("${name}", $r, '\3')	# fqdn (nfs.example.com)
-  $c = regsubst("${name}", $r, '\5')	# realm (EXAMPLE.COM)
+  $a = regsubst($name, $r, '\1')  # service (nfs)
+  $b = regsubst($name, $r, '\3')  # fqdn (nfs.example.com)
+  $c = regsubst($name, $r, '\5')  # realm (EXAMPLE.COM)
 
   # service: first try to get value from arg, then fall back to $a (name)
-  $valid_service = "${service}" ? {
-    '' => "${a}",				# get from $name regexp
-    default => "${service}",
+  $valid_service = $service ? {
+    '' => $a,        # get from $name regexp
+    default => $service,
   }
-  if "${valid_service}" == '' {
+  if $valid_service == '' {
     # NOTE: if we see this message it might be a regexp pattern bug
     fail('The $service must be specified.')
   }
 
   # host: first try to get value from arg, then fall back to $b
   # this is not necessarily the fqdn, but it could be. both are possible!
-  $valid_host = "${host}" ? {
-    '' => "${b}",				# get from $name regexp
-    default => "${host}",
+  $valid_host = $host ? {
+    '' => $b,        # get from $name regexp
+    default => $host,
   }
   # this error will probably prevent a later error in $valid_domain
-  if "${valid_host}" == '' {
+  if $valid_host == '' {
     fail('The $host must be specified.')
   }
 
   # parse the fqdn from $valid_host
   $r2 = '^([a-z][a-z0-9\-]*)(\.{0,1})([a-z0-9\.\-]*)$'
   #$h = regsubst("${valid_host}", $r2, '\1')	# hostname
-  $d = regsubst("${valid_host}", $r2, '\3')	# domain
+  $d = regsubst($valid_host, $r2, '\3')  # domain
 
-  $valid_domain = delete("${valid_host}", '.') ? {
-    "${valid_host}" => "${domain}" ? {	# no dots, not an fqdn!
-      '' => "${ipa::client::domain}" ? {	# NOTE: client!
-        '' => "${::domain}",	# default to global val
-        default => "${ipa::client::domain}",	# main!
+  $valid_domain = delete($valid_host, '.') ? {
+    "${valid_host}" => $domain ? {  # no dots, not an fqdn!
+      '' => $ipa::client::domain ? {  # NOTE: client!
+        '' => $::domain,  # default to global val
+        default => $ipa::client::domain,  # main!
       },
-      default => "${domain}",
+      default => $domain,
     },
-    default => "${domain}" ? {		# dots, it's an fqdn...
-      '' => "${d}",	# okay, used parsed value, it had dots!
-      "${d}" => "${domain}",		# they match, okay phew
-      default => '',	# no match, set '' to trigger an error!
+    default => $domain ? {    # dots, it's an fqdn...
+      '' => $d,  # okay, used parsed value, it had dots!
+      "${d}" => $domain,    # they match, okay phew
+      default => '',  # no match, set '' to trigger an error!
     },
   }
 
   # this error condition is very important because '' is used as trigger!
-  if "${valid_domain}" == '' {
+  if $valid_domain == '' {
     fail('The $domain must be specified.')
   }
 
-  $valid_fqdn = delete("${valid_host}", '.') ? {	# does it have any dots
+  $valid_fqdn = delete($valid_host, '.') ? {  # does it have any dots
     "${valid_host}" => "${valid_host}.${valid_domain}",
-    default => "${valid_host}",		# it had dot(s) present
+    default => $valid_host,    # it had dot(s) present
   }
 
-  $valid_realm = "${realm}" ? {
-    '' => "${c}" ? {			# get from $name regexp
-      '' => upcase($valid_domain),	# a backup plan default
-      default => "${c}",		# got from $name regexp
+  $valid_realm = $realm ? {
+    '' => $c ? {      # get from $name regexp
+      '' => upcase($valid_domain),  # a backup plan default
+      default => $c,    # got from $name regexp
     },
-    default => "${realm}",
+    default => $realm,
   }
 
   # sanity checking, this should probably not happen
-  if "${valid_realm}" == '' {
+  if $valid_realm == '' {
     fail('The $realm must be specified.')
   }
 
-  $valid_server = "${server}" ? {
-    '' => "${ipa::client::valid_server}",
-    default => "${server}",
+  $valid_server = $server ? {
+    '' => $ipa::client::valid_server,
+    default => $server,
   }
 
   # sanity checking, this should probably not happen
-  if "${valid_server}" == '' {
+  if $valid_server == '' {
     fail('The $server must be specified.')
   }
 
-  $valid_principal = "${principal}" ? {
+  $valid_principal = $principal ? {
     '' => "${valid_service}/${valid_fqdn}@${valid_realm}",
-    default => "${principal}",		# just do what you want
+    default => $principal,    # just do what you want
   }
 
-  $valid_keytab = "${keytab}" ? {			# TODO: validate
+  $valid_keytab = $keytab ? {      # TODO: validate
     '' => '/etc/krb5.keytab',
-    default => "${keytab}",
+    default => $keytab,
   }
 
   if $debug {
@@ -140,8 +140,8 @@ define ipa::client::service(
   # there is ensure_resource, but it's a hack and class might not work...
   # NOTE: i added a lifetime of 1 hour... no sense needing any longer
   $rr = "krbtgt/${valid_realm}@${valid_realm}"
-  $tl = '900'	# 60*15 => 15 minutes
-  $admin = "host/${valid_fqdn}@${valid_realm}"	# use this principal...
+  $tl = '900'  # 60*15 => 15 minutes
+  $admin = "host/${valid_fqdn}@${valid_realm}"  # use this principal...
   exec { "/usr/bin/kinit -k -t '${valid_keytab}' ${admin} -l 1h":
     logoutput => on_failure,
     #unless => "/usr/bin/klist -s",	# is there a credential cache
@@ -150,20 +150,20 @@ define ipa::client::service(
     # this should definitely get patched, but in the meantime, we
     # check that the current time is greater than the valid start
     # time (in seconds) and that we have within $tl seconds left!
-    unless => "/usr/bin/klist -s && /usr/bin/test \$(( `/bin/date +%s` - `/usr/bin/klist | /bin/grep -F '${rr}' | /bin/awk '{print \$1\" \"\$2}' | /bin/date --file=- +%s` )) -gt 0 && /usr/bin/test \$(( `/usr/bin/klist | /bin/grep -F '${rr}' | /bin/awk '{print \$3\" \"\$4}' | /bin/date --file=- +%s` - `/bin/date +%s` )) -gt ${tl}",
-    require => [
+    unless    => "/usr/bin/klist -s && /usr/bin/test \$(( `/bin/date +%s` - `/usr/bin/klist | /bin/grep -F '${rr}' | /bin/awk '{print \$1\" \"\$2}' | /bin/date --file=- +%s` )) -gt 0 && /usr/bin/test \$(( `/usr/bin/klist | /bin/grep -F '${rr}' | /bin/awk '{print \$3\" \"\$4}' | /bin/date --file=- +%s` - `/bin/date +%s` )) -gt ${tl}",
+    require   => [
       Package['ipa-client'],
       Exec['ipa-install'],
-      Ipa::Client::Host["${valid_host}"],
+      Ipa::Client::Host[$valid_host],
     ],
-    alias => "ipa-client-service-kinit-${name}",
+    alias     => "ipa-client-service-kinit-${name}",
   }
 
-  $args01 = "--server='${valid_server}'"	# contact this KDC server (ipa)
-  $args02 = "--principal='${valid_principal}'"	# the service principal
+  $args01 = "--server='${valid_server}'"  # contact this KDC server (ipa)
+  $args02 = "--principal='${valid_principal}'"  # the service principal
   $args03 = "--keytab='${valid_keytab}'"
 
-  $arglist = ["${args01}", "${args02}", "${args03}"]
+  $arglist = [$args01, $args02, $args03]
   $args = join(delete($arglist, ''), ' ')
 
   $kvno_bool = "/usr/bin/kvno -q '${valid_principal}'"
@@ -171,8 +171,8 @@ define ipa::client::service(
     logoutput => on_failure,
       # check that the KDC has a valid ticket available there
       # check that the ticket version no. matches our keytab!
-    unless => "${kvno_bool} && /usr/bin/klist -k -t '${valid_keytab}' | /bin/awk '{print \$4\": kvno = \"\$1}' | /bin/sort | /usr/bin/uniq | /bin/grep -F '${valid_principal}' | /bin/grep -qxF \"`/usr/bin/kvno '${valid_principal}'`\"",
-    require => [
+    unless    => "${kvno_bool} && /usr/bin/klist -k -t '${valid_keytab}' | /bin/awk '{print \$4\": kvno = \"\$1}' | /bin/sort | /usr/bin/uniq | /bin/grep -F '${valid_principal}' | /bin/grep -qxF \"`/usr/bin/kvno '${valid_principal}'`\"",
+    require   => [
       # these deps are done in the kinit
       #Package['ipa-client'],
       #Exec['ipa-install'],

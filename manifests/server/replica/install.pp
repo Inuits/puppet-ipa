@@ -27,29 +27,29 @@ class ipa::server::replica::install(
   $vardir = regsubst($::ipa::vardir::module_vardir, '\/$', '')
 
   # process possible replica masters that are available...
-  $replica_fqdns_fact = "${::ipa_replica_prepared_fqdns}"	# fact!
-  $replica_fqdns = split($replica_fqdns_fact, ',')	# list!
+  $replica_fqdns_fact = $::ipa_replica_prepared_fqdns  # fact!
+  $replica_fqdns = split($replica_fqdns_fact, ',')  # list!
 
   # peering is always bidirectional for now :)
   # $peers is a hash of fqdn1 => fqdn2 pairs...
 
   #if has_key($peers, "${::fqdn}") and member($replica_fqdns, $peers["${::fqdn}"]) {
   #	$valid_fqdn = $peers["${::fqdn}"]
-  if has_key($peers, "${::fqdn}") {
+  if has_key($peers, $::fqdn) {
     $intersection = intersection($replica_fqdns, $peers["${::fqdn}"])
     # NOTE use empty() because 'if []' returns true!
     if empty($intersection) {
       $valid_fqdn = ''
     } else {
       # pick the first in the list if there is more than one!
-      $valid_fqdn = pick($intersection, '')	# first
+      $valid_fqdn = pick($intersection, '')  # first
     }
   } else {
     $valid_fqdn = ''
   }
 
-  if "${ipa_server_installed}" != 'true' {
-    if "${valid_fqdn}" == '' {
+  if $ipa_server_installed != true {
+    if $valid_fqdn == '' {
       warning("The requested peer: '${valid_fqdn}', isn't ready yet.")
     } else {
       info("The requested peer is: '${valid_fqdn}'.")
@@ -57,12 +57,12 @@ class ipa::server::replica::install(
   }
 
   $filename = "replica-info-${valid_fqdn}.gpg"
-  $filefrom = "replica-info-${::fqdn}.gpg"	# name it with our fqdn
+  $filefrom = "replica-info-${::fqdn}.gpg"  # name it with our fqdn
   $valid_file = "${vardir}/replica/install/${filename}"
   $valid_from = "${vardir}/replica/prepare/${filefrom}"
 
   # send to all prepared hosts, so the keys don't flip flop if vip moves!
-  ssh::send { $replica_fqdns:	# fqdn of where i got this from...
+  ssh::send { $replica_fqdns:  # fqdn of where i got this from...
 
   }
 
@@ -72,16 +72,16 @@ class ipa::server::replica::install(
   # side. we do this so that we only pull in what is intended for us, and
   # as a result, this avoids real duplicate resource conflicts. but NOTE:
   # this currently depends on all hosts sharing the same value of $vardir
-  Ssh::File::Pull <<| tag == 'ipa-replica-prepare' and file == "${valid_from}" |>> {
+  Ssh::File::Pull <<| tag == 'ipa-replica-prepare' and file == $valid_from |>> {
     path => "${vardir}/replica/install/",
-    verify => false,		# rely on mtime
-    pair => false,			# do it now so it happens fast!
+    verify => false,    # rely on mtime
+    pair => false,      # do it now so it happens fast!
     # tag this file so it doesn't get purged
     ensure => present,
     owner => root,
     group => nobody,
-    mode => '600',			# u=rw
-    backup => false,		# don't backup to filebucket
+    mode => '600',      # u=rw
+    backup => false,    # don't backup to filebucket
     before => Exec['ipa-install'],
     require => File["${vardir}/replica/install/"],
   }
@@ -90,17 +90,17 @@ class ipa::server::replica::install(
   # NOTE: the --admin-password is only useful for the connection check...
   exec { "/usr/sbin/ipa-replica-install --password=`/bin/cat '${vardir}/dm.password'` --admin-password=`/bin/cat '${vardir}/admin.password'` --unattended ${valid_file}":
     logoutput => on_failure,
-    onlyif => [
-      "/usr/bin/test '${valid_fqdn}' != ''",	# bonus safety!
+    onlyif    => [
+      "/usr/bin/test '${valid_fqdn}' != ''",  # bonus safety!
       "/usr/bin/test -s ${valid_file}",
     ],
-    unless => "${::ipa::common::ipa_installed}",	# can't install if installed...
-    timeout => 3600,	# hope it doesn't take more than 1 hour
-    require => [
+    unless    => $::ipa::common::ipa_installed,  # can't install if installed...
+    timeout   => 3600,  # hope it doesn't take more than 1 hour
+    require   => [
       File["${vardir}/"],
       Package['ipa-server'],
     ],
-    alias => 'ipa-install',	# same alias as server to prevent both!
+    alias     => 'ipa-install',  # same alias as server to prevent both!
   }
 }
 

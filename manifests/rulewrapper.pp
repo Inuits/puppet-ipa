@@ -28,19 +28,19 @@ define ipa::rulewrapper(
   $original = [],
   $comment = '',
   $ensure = present,
-  $match = ''	# additional tag parameter
+  $match = ''  # additional tag parameter
 ) {
-  shorewall::rule { "${name}":
-    action => "${action}",
-    source => "${source}",
+  shorewall::rule { $name:
+    action     => $action,
+    source     => $source,
     source_ips => $source_ips,
-    dest => "${dest}",
-    dest_ips => $dest_ips,
-    proto => "${proto}",
-    port => $port,
-    sport => $sport,
-    comment => "${comment}",
-    ensure => $ensure,
+    dest       => $dest,
+    dest_ips   => $dest_ips,
+    proto      => $proto,
+    port       => $port,
+    sport      => $sport,
+    comment    => $comment,
+    ensure     => $ensure,
   }
 }
 

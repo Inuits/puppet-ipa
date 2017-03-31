@@ -23,11 +23,14 @@ class ipa::server::replica::master::base {
   $vardir = regsubst($::ipa::vardir::module_vardir, '\/$', '')
 
   file { "${vardir}/replica/master/":
-    ensure => directory,		# make sure this is a directory
-    recurse => true,		# recursively manage directory
-    purge => true,			# purge all unmanaged files
-    force => true,			# also purge subdirs and links
-    owner => root, group => nobody, mode => '600', backup => false,
+    ensure  => directory,    # make sure this is a directory
+    recurse => true,    # recursively manage directory
+    purge   => true,      # purge all unmanaged files
+    force   => true,      # also purge subdirs and links
+    owner   => root,
+    group   => nobody,
+    mode    => '0600',
+    backup  => false,
     require => File["${vardir}/replica/"],
   }
 }
