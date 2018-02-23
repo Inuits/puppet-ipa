@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 class ipa::client(
+  $name = '',      # what define was called with...
   $hostname = $::hostname,
   $domain = $::domain,
   $realm = '',      # defaults to upcase($domain)
